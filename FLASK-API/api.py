@@ -9,7 +9,7 @@ api = Api(app)
 
 class UserModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
+    name = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(80), unique=True, nullable=False)
 
     def __repr__(self):
@@ -39,8 +39,38 @@ class Users(Resource):
         db.session.commit()
         users = UserModel.query.all()
         return users, 201
+
+class User(Resource):
+    @marshal_with(userFields)
+    def get(self, id):
+        user = UserModel.query.filter_by(id=id).first()
+        if not user:
+            abort(404, "Could not find user with that id")
+        return user
     
+    @marshal_with(userFields)
+    def patch(self, id):
+        args = user_args.parse_args()
+        user = UserModel.query.filter_by(id=id).first()
+        if not user:
+            abort(404, "Could not find user with that id")
+        user.name = args['name']
+        user.email = args['email']
+        db.session.commit()
+        return user
+    
+    @marshal_with(userFields)
+    def delete(self, id):
+        user = UserModel.query.filter_by(id=id).first()
+        if not user:
+            abort(404, "Could not find user with that id")
+        db.session.delete(user)
+        db.session.commit()
+        users = UserModel.query.all()
+        return users
+
 api.add_resource(Users, '/api/users')
+api.add_resource(User, '/api/users/<int:id>')
 
 @app.route('/')
 def home():
